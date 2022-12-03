@@ -29,7 +29,7 @@ unsigned long  currentTime = 0;
 unsigned long previousTime = 0;
 unsigned long   previousIR = 0;
 
-int IRDelay = 150;
+int IRDelay = 50;
 
 int irValue;
 #include <IRremote.h>
@@ -72,6 +72,7 @@ void setup() {
 
 void loop() {
   speedLCD = speedDelay / 1000;
+  
   timer();
   relayTask();
   lcdTask();
@@ -115,13 +116,13 @@ void irReceiver(){
         break;
         
         case -15811:
-          if(prgNb < 4){
+          if(prgNb < 4 && prgNb >= 1){
             prgNb++;
           }
         break;
         
         case 8925:
-          if(prgNb > 2){
+          if(prgNb > 2 && prgNb <= 4){
             prgNb--;
           }
         break;
@@ -156,6 +157,9 @@ void progTask(){
       lcd.setCursor(0,2);
       lcd.print("Nom: All on       ");
       relaysPower = -1;
+      for(int i = 2; i < 10; i++){
+        digitalWrite(i, LOW);
+      }
     break;
     
     case 2:
@@ -198,113 +202,10 @@ void progTask(){
   }
 }
 
-void lcdTask(){
-  
-  lcd.setCursor(0,0);
-  lcd.print("  Vitesse : ");
-  lcd.print(speedLCD);
-  lcd.print("s");
-  
-  lcd.setCursor(0,1);
-  lcd.print("Programme : #");
-  lcd.print(prgNb);
-  lcd.print("   ");
-
-  r1 = !digitalRead(relay1);
-  r2 = !digitalRead(relay2);
-  r3 = !digitalRead(relay3);
-  r4 = !digitalRead(relay4);
-  r5 = !digitalRead(relay5);
-  r6 = !digitalRead(relay6);
-  r7 = !digitalRead(relay7);
-  r8 = !digitalRead(relay8);
-
-  
-  lcd.setCursor(4,3);
-  lcd.print("1>");
-  lcd.setCursor(14,3);
-  lcd.print("<8");
-
-  if(r1){
-    lcd.setCursor((4+relay1),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay1),3);
-    lcd.print(" ");
-  }
-  if(r2){
-    lcd.setCursor((4+relay2),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay2),3);
-    lcd.print(" ");
-  }
-  if(r3){
-    lcd.setCursor((4+relay3),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay3),3);
-    lcd.print(" ");
-  }
-  if(r4){
-    lcd.setCursor((4+relay4),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay4),3);
-    lcd.print(" ");
-  }
-  if(r5){
-    lcd.setCursor((4+relay5),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay5),3);
-    lcd.print(" ");
-  }
-  if(r6){
-    lcd.setCursor((4+relay6),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay6),3);
-    lcd.print(" ");
-  }
-  if(r7){
-    lcd.setCursor((4+relay7),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay7),3);
-    lcd.print(" ");
-  }
-  if(r8){
-    lcd.setCursor((4+relay8),3);
-    lcd.write(1);
-  }
-  else{
-    lcd.setCursor((4+relay8),3);
-    lcd.print(" ");
-  }
-  
-}
-
 void relayTask(){
   switch(relaysPower){
 
-    case -1:
-      digitalWrite(relay1, LOW);
-      digitalWrite(relay2, LOW);
-      digitalWrite(relay3, LOW);
-      digitalWrite(relay4, LOW);
-      digitalWrite(relay5, LOW);
-      digitalWrite(relay6, LOW);
-      digitalWrite(relay7, LOW);
-      digitalWrite(relay8, LOW);
-    break;
+    case -1: break;
     
     case 0:
       digitalWrite(relay1, HIGH);
@@ -422,4 +323,102 @@ void relayTask(){
       digitalWrite(relay8, HIGH);      
     break;  
   }
+}
+
+
+
+
+
+void lcdTask(){
+  
+  lcd.setCursor(0,0);
+  lcd.print("  Vitesse : ");
+  lcd.print(speedLCD);
+  lcd.print("s");
+  
+  lcd.setCursor(0,1);
+  lcd.print("Programme : #");
+  lcd.print(prgNb);
+  lcd.print("   ");
+
+  r1 = !digitalRead(relay1);
+  r2 = !digitalRead(relay2);
+  r3 = !digitalRead(relay3);
+  r4 = !digitalRead(relay4);
+  r5 = !digitalRead(relay5);
+  r6 = !digitalRead(relay6);
+  r7 = !digitalRead(relay7);
+  r8 = !digitalRead(relay8);
+
+  
+  lcd.setCursor(4,3);
+  lcd.print("1>");
+  lcd.setCursor(14,3);
+  lcd.print("<8");
+
+  if(r1){
+    lcd.setCursor((4+relay1),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay1),3);
+    lcd.print(" ");
+  }
+  if(r2){
+    lcd.setCursor((4+relay2),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay2),3);
+    lcd.print(" ");
+  }
+  if(r3){
+    lcd.setCursor((4+relay3),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay3),3);
+    lcd.print(" ");
+  }
+  if(r4){
+    lcd.setCursor((4+relay4),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay4),3);
+    lcd.print(" ");
+  }
+  if(r5){
+    lcd.setCursor((4+relay5),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay5),3);
+    lcd.print(" ");
+  }
+  if(r6){
+    lcd.setCursor((4+relay6),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay6),3);
+    lcd.print(" ");
+  }
+  if(r7){
+    lcd.setCursor((4+relay7),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay7),3);
+    lcd.print(" ");
+  }
+  if(r8){
+    lcd.setCursor((4+relay8),3);
+    lcd.write(1);
+  }
+  else{
+    lcd.setCursor((4+relay8),3);
+    lcd.print(" ");
+  }
+  
 }
