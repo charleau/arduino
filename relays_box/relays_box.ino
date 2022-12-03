@@ -9,6 +9,7 @@ const int relay5 = 6;
 const int relay6 = 7;
 const int relay7 = 8;
 const int relay8 = 9;
+const int     IR = 10;
 
 int r1 = 0;
 int r2 = 0;
@@ -19,15 +20,21 @@ int r6 = 0;
 int r7 = 0;
 int r8 = 0;
 
-float speedLCD = 0;
-float speedDelay = 50;           //speed is in milliseconds
-int prgNb = 0;
-
+float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
+float speedDelay = 50; //speed is in milliseconds
+int        prgNb = 0;
 byte relaysPower = 1;
-int sens = -2;
 
-unsigned long currentTime = 0;
+unsigned long  currentTime = 0;
 unsigned long previousTime = 0;
+unsigned long   previousIR = 0;
+
+int IRDelay = 150;
+
+int irValue;
+#include <IRremote.h>
+IRrecv irrecv(IR);     
+decode_results results;;
 
 byte fullCase[8]={B11111, B11111, B11111, B11111,
                   B11111, B11111, B11111, B11111,};
@@ -43,7 +50,8 @@ void setup() {
   pinMode(relay6, OUTPUT);
   pinMode(relay7, OUTPUT);
   pinMode(relay8, OUTPUT);
-
+  pinMode(IR    ,  INPUT);
+  
   digitalWrite(relay1, HIGH);
   digitalWrite(relay2, HIGH);
   digitalWrite(relay3, HIGH);
@@ -58,11 +66,8 @@ void setup() {
 
   lcd.createChar(1, fullCase);
 
-  /*lcd.setCursor(0,0);
-  lcd.print("allo test");
-
-  delay(4000);*/
-
+  irrecv.enableIRIn();
+  decode_results results;
 }
 
 void loop() {
@@ -70,6 +75,7 @@ void loop() {
   timer();
   relayTask();
   lcdTask();
+  irReceiver();
 }
 
 void timer(){
@@ -78,6 +84,117 @@ void timer(){
   if(currentTime - previousTime >= speedDelay){
     previousTime = currentTime;
     progTask();
+  }
+}
+
+
+
+void irReceiver(){
+/*
+                flèche droite == -15811
+                flèche gauche == 8925
+                flèche haut == -28561
+                flèche bas == -8161
+                power == -23971
+                stop == -7651
+                EQ == -26521
+*/
+  if(currentTime - previousIR >= IRDelay){
+    previousIR = currentTime;
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      Serial.println(irValue);
+
+      switch(irValue){
+        case -23971:
+            prgNb = 1;
+        break;
+        
+        case -7651:
+            prgNb = 0;
+        break;
+        
+        case -15811:
+          if(prgNb < 4){
+            prgNb++;
+          }
+        break;
+        
+        case 8925:
+          if(prgNb > 2){
+            prgNb--;
+          }
+        break;
+
+        case -28561:
+          speedDelay = speedDelay + 50;
+        break;
+
+        case -8161:
+          if(speedDelay > 50){
+            speedDelay = speedDelay - 50;
+          }
+        break;
+      }
+    }
+  }
+  irrecv.resume();
+}
+
+
+void progTask(){
+  
+  switch(prgNb){
+    
+    case 0:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: All off       ");
+      relaysPower = 0;
+    break;
+
+    case 1:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: All on       ");
+      relaysPower = -1;
+    break;
+    
+    case 2:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: balayage 1->8");
+      
+      if(relaysPower >= 8){
+      relaysPower = 1;
+      }
+      else{
+        relaysPower++;
+      }      
+    break;
+
+    
+    case 3:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: balayage 1<-8");
+      
+      if(relaysPower <= 1){
+      relaysPower = 8;      
+      }
+      else{
+        relaysPower--;
+      }      
+    break;
+
+    
+    case 4:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: clign 1-4<->5-8");
+    
+      if(relaysPower == 11){
+        relaysPower = 10;
+      }
+      else{
+        relaysPower = 11;
+       } 
+    break;
   }
 }
 
@@ -91,6 +208,7 @@ void lcdTask(){
   lcd.setCursor(0,1);
   lcd.print("Programme : #");
   lcd.print(prgNb);
+  lcd.print("   ");
 
   r1 = !digitalRead(relay1);
   r2 = !digitalRead(relay2);
@@ -102,10 +220,10 @@ void lcdTask(){
   r8 = !digitalRead(relay8);
 
   
-  lcd.setCursor(5,3);
-  lcd.print(">");
+  lcd.setCursor(4,3);
+  lcd.print("1>");
   lcd.setCursor(14,3);
-  lcd.print("<");
+  lcd.print("<8");
 
   if(r1){
     lcd.setCursor((4+relay1),3);
@@ -174,59 +292,20 @@ void lcdTask(){
   
 }
 
-void progTask(){
-  
-  switch(prgNb){
-    
-    case 0:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: All off       ");
-      relaysPower = 0;
-    break;
-
-    
-    case 1:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1->8");
-      
-      if(relaysPower >= 8){
-      relaysPower = 1;      
-      }
-      else{
-        relaysPower++;
-      }      
-    break;
-
-    
-    case 2:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1<-8");
-      
-      if(relaysPower <= 1){
-      relaysPower = 8;      
-      }
-      else{
-        relaysPower--;
-      }      
-    break;
-
-    
-    case 3:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: clign 1-4<->5-8");
-    
-      if(relaysPower == 11){
-        relaysPower = 10;
-      }
-      else{
-        relaysPower = 11;
-       } 
-    break;
-  }
-}
-
 void relayTask(){
   switch(relaysPower){
+
+    case -1:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    
     case 0:
       digitalWrite(relay1, HIGH);
       digitalWrite(relay2, HIGH);
