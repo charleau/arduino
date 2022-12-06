@@ -19,6 +19,7 @@ int r5 = 0;
 int r6 = 0;
 int r7 = 0;
 int r8 = 0;
+bool reverse = false;
 
 float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
 float speedDelay = 50; //speed is in milliseconds
@@ -116,13 +117,13 @@ void irReceiver(){
         break;
         
         case -15811:
-          if(prgNb < 4 && prgNb >= 1){
+          if(prgNb < 5 && prgNb >= 1){
             prgNb++;
           }
         break;
         
         case 8925:
-          if(prgNb > 2 && prgNb <= 4){
+          if(prgNb > 2 && prgNb <= 5){
             prgNb--;
           }
         break;
@@ -135,6 +136,7 @@ void irReceiver(){
           if(speedDelay > 50){
             speedDelay = speedDelay - 50;
           }
+          
         break;
       }
     }
@@ -149,13 +151,13 @@ void progTask(){
     
     case 0:
       lcd.setCursor(0,2);
-      lcd.print("Nom: All off       ");
+      lcd.print("Nom: All off         ");
       relaysPower = 0;
     break;
 
     case 1:
       lcd.setCursor(0,2);
-      lcd.print("Nom: All on       ");
+      lcd.print("Nom: All on         ");
       relaysPower = -1;
       for(int i = 2; i < 10; i++){
         digitalWrite(i, LOW);
@@ -164,7 +166,7 @@ void progTask(){
     
     case 2:
       lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1->8");
+      lcd.print("Nom: balayage 1->8  ");
       
       if(relaysPower >= 8){
       relaysPower = 1;
@@ -177,7 +179,7 @@ void progTask(){
     
     case 3:
       lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1<-8");
+      lcd.print("Nom: balayage 1<-8 ");
       
       if(relaysPower <= 1){
       relaysPower = 8;      
@@ -190,7 +192,7 @@ void progTask(){
     
     case 4:
       lcd.setCursor(0,2);
-      lcd.print("Nom: clign 1-4<->5-8");
+      lcd.print("Nom: clign 1-4<->5-8 ");
     
       if(relaysPower == 11){
         relaysPower = 10;
@@ -198,6 +200,27 @@ void progTask(){
       else{
         relaysPower = 11;
        } 
+    break;
+
+    case 5:
+      lcd.setCursor(0,2);
+      lcd.print("Nom: balayage 1<->8 ");
+      if(reverse){
+        if(relaysPower >= 8){
+        reverse =!reverse;
+        }
+        else{
+          relaysPower++;
+        } 
+      }
+      else{
+        if(relaysPower <= 1){
+        reverse =!reverse;      
+        }
+        else{
+          relaysPower--;
+        } 
+      }
     break;
   }
 }
@@ -332,12 +355,12 @@ void relayTask(){
 void lcdTask(){
   
   lcd.setCursor(0,0);
-  lcd.print("  Vitesse : ");
+  lcd.print("delais : ");
   lcd.print(speedLCD);
   lcd.print("s");
   
   lcd.setCursor(0,1);
-  lcd.print("Programme : #");
+  lcd.print("Prog : #");
   lcd.print(prgNb);
   lcd.print("   ");
 
