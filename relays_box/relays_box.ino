@@ -5,13 +5,6 @@
 
 
 /*------------------ Déclaration des pins utilisées ------------------*/
-#include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 20, 4);
-
-#include <IRremote.h>
-IRrecv irrecv(IR);     
-decode_results results;;
-
 const int relay1 = 2;
 const int relay2 = 3;
 const int relay3 = 4;
@@ -21,6 +14,16 @@ const int relay6 = 7;
 const int relay7 = 8;
 const int relay8 = 9;
 const int     IR = 10;
+
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+#include <IRremote.h>
+IRrecv irrecv(IR);     
+decode_results results;;
+
+#include "RTClib.h"
+RTC_DS1307 rtc;
 
 /*------------------ Déclaration des variables utilisées ------------------*/
           int r1 = 0;
@@ -33,6 +36,14 @@ const int     IR = 10;
           int r8 = 0;
           
     bool reverse = false;
+
+int setYear = 2022;
+int setMonth = 15;
+int setDay = 15;
+int setHour = 0;
+int setMinute = 0;
+char daysWeek[7][3] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+bool rtcOK = false;
 
 float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
 float speedDelay = 50; //speed is in milliseconds
@@ -82,6 +93,15 @@ void setup() {
 
   irrecv.enableIRIn();
   decode_results results;
+
+  if(!rtc.begin()){
+    lcd.clear();
+    
+    lcd.setCursor(0, 0);
+    lcd.print("     RTC error!     ");
+    while (1);
+  }
+  rtcSetting();
 }
 
 /*------------------------------------- Programme principal ----------------------------------*/
@@ -92,6 +112,145 @@ void loop() {
   relayTask();
   lcdTask();
   irReceiver();
+}
+
+void rtcSetting(){
+
+  /*
+            enter == 765
+                0 == 26775
+                9 == 21165
+      flèche haut == -28561
+       flèche bas == -8161
+  */
+  
+  DateTime now = rtc.now();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("RTC setting correct?");
+  lcd.setCursor(0, 1);
+  lcd.print(daysWeek[now.dayOfTheWeek()]);
+  lcd.setCursor(3, 1);
+  lcd.print(" ");
+  lcd.print(now.day());
+  lcd.print("-");
+  lcd.print(now.month());
+  lcd.print("-");
+  lcd.print(now.year());
+  lcd.print(" ");
+  lcd.print(now.hour());
+  lcd.print(":");
+  lcd.print(now.minute());
+  lcd.setCursor(0, 3);
+  lcd.print("0 for OK  | 9 if not");
+
+  while(irValue != 26775 && irValue != 21165){
+    delay(10);
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == 26775){rtcOK = true;}
+    }
+    irrecv.resume();
+  }
+
+  if(!rtcOK){
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("      SET DATE      ");
+/*-------------SET THE DAY-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setDay < 31){ setDay++; }
+        if(irValue == -8161 && setDay > 1){ setDay--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("      Day : ");
+      lcd.print(setDay);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE MONTH-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setMonth < 12){ setMonth++; }
+        if(irValue == -8161 && setMonth > 1){ setMonth--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("    Month : ");
+      lcd.print(setMonth);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE YEAR-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561){ setYear++; }
+        if(irValue == -8161 && setYear > 2022){ setYear--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("     Year : ");
+      lcd.print(setYear);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+    lcd.setCursor(0, 0);
+    lcd.print("      SET TIME      ");
+
+/*-------------SET THE HOUR-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setHour < 23){ setHour++; }
+        if(irValue == -8161 && setHour > 0){ setHour--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("     Hour : ");
+      lcd.print(setHour);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE MINUTE-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setMinute < 59){ setMinute++; }
+        if(irValue == -8161 && setMinute > 0){ setMinute--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("   Minute : ");
+      lcd.print(setMinute);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+    rtc.adjust(DateTime(setYear, setMonth, setDay, setHour, setMinute, 0));
+    lcd.clear();
+    lcd.setCursor(0, 2);
+    lcd.print("   Settings  have   ");
+    lcd.print("    been  saved!    ");
+    delay(3000);
+    lcd.clear();
+    
+  }
+  
 }
 
 /*-------------------------------------- Fonction Timer --------------------------------------*/
@@ -109,11 +268,13 @@ void irReceiver(){
 /*
                 flèche droite == -15811
                 flèche gauche == 8925
-                flèche haut == -28561
-                flèche bas == -8161
-                power == -23971
-                stop == -7651
-                EQ == -26521
+                  flèche haut == -28561
+                   flèche bas == -8161
+                        power == -23971
+                         stop == -7651
+                            EQ== -26521
+                            0 == 26775
+                            9 == 21165
 */
   if(currentTime - previousIR >= IRDelay){
     previousIR = currentTime;
@@ -164,14 +325,14 @@ void progTask(){
   switch(prgNb){
     
     case 0:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: All off         ");
+      lcd.setCursor(6,2);
+      lcd.print("All off         ");
       relaysPower = 0;
     break;
 
     case 1:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: All on         ");
+      lcd.setCursor(6,2);
+      lcd.print("All on         ");
       relaysPower = -1;
       for(int i = 2; i < 10; i++){
         digitalWrite(i, LOW);
@@ -179,8 +340,8 @@ void progTask(){
     break;
     
     case 2:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1->8  ");
+      lcd.setCursor(6,2);
+      lcd.print("balayage 1->8  ");
       
       if(relaysPower >= 8){
       relaysPower = 1;
@@ -192,8 +353,8 @@ void progTask(){
 
     
     case 3:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1<-8 ");
+      lcd.setCursor(6,2);
+      lcd.print("balayage 1<-8    ");
       
       if(relaysPower <= 1){
       relaysPower = 8;      
@@ -205,8 +366,8 @@ void progTask(){
 
     
     case 4:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: clign 1-4<->5-8 ");
+      lcd.setCursor(6,2);
+      lcd.print("clign 1-4<->5-8     ");
     
       if(relaysPower == 11){
         relaysPower = 10;
@@ -217,8 +378,8 @@ void progTask(){
     break;
 
     case 5:
-      lcd.setCursor(0,2);
-      lcd.print("Nom: balayage 1<->8 ");
+      lcd.setCursor(6,2);
+      lcd.print("balayage 1<->8     ");
       if(reverse){
         if(relaysPower >= 8){
         reverse =!reverse;
@@ -363,18 +524,34 @@ void relayTask(){
   }
 }
 
+/*------------------------------------- DS1307 RTC ------------------------------------*/
+
+void rtcTask(){
+  
+}
+
 /*--------------------------------- Affichage du LCD ----------------------------------*/
 void lcdTask(){
+
+  DateTime now = rtc.now();
   
   lcd.setCursor(0,0);
   lcd.print("delais : ");
   lcd.print(speedLCD);
-  lcd.print("s");
+  lcd.print("s       ");
   
   lcd.setCursor(0,1);
   lcd.print("Prog : #");
   lcd.print(prgNb);
-  lcd.print("   ");
+  lcd.print("            ");
+  lcd.setCursor(15,1);
+  lcd.print(now.hour());
+  lcd.print(":");
+  lcd.print(now.minute());
+  lcd.print(" ");
+
+  lcd.setCursor(0,2);
+  lcd.print("Nom:");
 
   r1 = !digitalRead(relay1);
   r2 = !digitalRead(relay2);
@@ -386,10 +563,10 @@ void lcdTask(){
   r8 = !digitalRead(relay8);
 
   
-  lcd.setCursor(4,3);
-  lcd.print("1>");
+  lcd.setCursor(0,3);
+  lcd.print("    1>");
   lcd.setCursor(14,3);
-  lcd.print("<8");
+  lcd.print("<8    ");
 
   if(r1){
     lcd.setCursor((4+relay1),3);
