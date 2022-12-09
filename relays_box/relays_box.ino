@@ -1,5 +1,16 @@
+/**
+ * Relay box Version 2
+ * 
+ **/
+
+
+/*------------------ Déclaration des pins utilisées ------------------*/
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+#include <IRremote.h>
+IRrecv irrecv(IR);     
+decode_results results;;
 
 const int relay1 = 2;
 const int relay2 = 3;
@@ -11,35 +22,37 @@ const int relay7 = 8;
 const int relay8 = 9;
 const int     IR = 10;
 
-int r1 = 0;
-int r2 = 0;
-int r3 = 0;
-int r4 = 0;
-int r5 = 0;
-int r6 = 0;
-int r7 = 0;
-int r8 = 0;
-bool reverse = false;
+/*------------------ Déclaration des variables utilisées ------------------*/
+          int r1 = 0;
+          int r2 = 0;
+          int r3 = 0;
+          int r4 = 0;
+          int r5 = 0;
+          int r6 = 0;
+          int r7 = 0;
+          int r8 = 0;
+          
+    bool reverse = false;
 
 float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
 float speedDelay = 50; //speed is in milliseconds
 int        prgNb = 0;
 byte relaysPower = 1;
 
+/*----- Variables timer -----*/
 unsigned long  currentTime = 0;
 unsigned long previousTime = 0;
 unsigned long   previousIR = 0;
-
-int IRDelay = 50;
+               int IRDelay = 50;
 
 int irValue;
-#include <IRremote.h>
-IRrecv irrecv(IR);     
-decode_results results;;
 
+/*----- Caractère plein pour LCD -----*/
 byte fullCase[8]={B11111, B11111, B11111, B11111,
                   B11111, B11111, B11111, B11111,};
 
+
+/*--------------------------- Setup du Arduino ---------------------------*/
 void setup() {
   Serial.begin(9600);
 
@@ -71,6 +84,7 @@ void setup() {
   decode_results results;
 }
 
+/*------------------------------------- Programme principal ----------------------------------*/
 void loop() {
   speedLCD = speedDelay / 1000;
   
@@ -80,6 +94,7 @@ void loop() {
   irReceiver();
 }
 
+/*-------------------------------------- Fonction Timer --------------------------------------*/
 void timer(){
   currentTime = millis();
 
@@ -89,8 +104,7 @@ void timer(){
   }
 }
 
-
-
+/*--------------------------- Fonction de gestion de la manette IR ---------------------------*/
 void irReceiver(){
 /*
                 flèche droite == -15811
@@ -144,7 +158,7 @@ void irReceiver(){
   irrecv.resume();
 }
 
-
+/*------------------------------ Gestion des différents programmes -----------------------------*/
 void progTask(){
   
   switch(prgNb){
@@ -225,6 +239,7 @@ void progTask(){
   }
 }
 
+/*------------------------------ Gestion de l'allumage des relais -----------------------------*/
 void relayTask(){
   switch(relaysPower){
 
@@ -348,10 +363,7 @@ void relayTask(){
   }
 }
 
-
-
-
-
+/*--------------------------------- Affichage du LCD ----------------------------------*/
 void lcdTask(){
   
   lcd.setCursor(0,0);
