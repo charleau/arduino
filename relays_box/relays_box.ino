@@ -37,8 +37,8 @@ RTC_DS1307 rtc;
           
     bool reverse = false;
 
-int setYear = 2022;
-int setMonth = 15;
+int setYear = 2023;
+int setMonth = 6;
 int setDay = 15;
 int setHour = 0;
 int setMinute = 0;
@@ -138,8 +138,10 @@ void rtcSetting(){
   lcd.print("-");
   lcd.print(now.year());
   lcd.print(" ");
+  if(now.hour() < 10){ lcd.print(" "); }
   lcd.print(now.hour());
   lcd.print(":");
+  if(now.minute() < 10){ lcd.print(" "); }
   lcd.print(now.minute());
   lcd.setCursor(0, 3);
   lcd.print("0 for OK  | 9 if not");
@@ -545,8 +547,10 @@ void lcdTask(){
   lcd.print(prgNb);
   lcd.print("            ");
   lcd.setCursor(15,1);
+  if(now.hour() < 10){ lcd.print(" "); }
   lcd.print(now.hour());
   lcd.print(":");
+  if(now.minute() < 10){ lcd.print(" "); }
   lcd.print(now.minute());
   lcd.print(" ");
 
