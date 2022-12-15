@@ -138,10 +138,10 @@ void rtcSetting(){
   lcd.print("-");
   lcd.print(now.year());
   lcd.print(" ");
-  if(now.hour() < 10){ lcd.print(" "); }
+  if(now.hour() < 10){ lcd.print("0"); }
   lcd.print(now.hour());
   lcd.print(":");
-  if(now.minute() < 10){ lcd.print(" "); }
+  if(now.minute() < 10){ lcd.print("0"); }
   lcd.print(now.minute());
   lcd.setCursor(0, 3);
   lcd.print("0 for OK  | 9 if not");
@@ -547,10 +547,10 @@ void lcdTask(){
   lcd.print(prgNb);
   lcd.print("            ");
   lcd.setCursor(15,1);
-  if(now.hour() < 10){ lcd.print(" "); }
+  if(now.hour() < 10){ lcd.print("0"); }
   lcd.print(now.hour());
   lcd.print(":");
-  if(now.minute() < 10){ lcd.print(" "); }
+  if(now.minute() < 10){ lcd.print("0"); }
   lcd.print(now.minute());
   lcd.print(" ");
 

@@ -1,5 +1,6 @@
+float v_logiciel = 7.87;
 /*
-  Version 7.73
+  Version ^^^^^^^^
  
  * Ajout d'un deuxième boitier à contrôler :
  * {  
@@ -51,8 +52,6 @@ const int next = 11;
 
 //----------------------------DÉCLARATION DES VARIABLES----------------------------\\
 
-float v_logiciel = 7.73;
-
 int enterPressed = 0;
 int upPressed = 0;
 int downPressed = 0;
@@ -94,7 +93,7 @@ bool isVentilUpSaved = false;
 bool isVentilDownSaved = false;
 bool isLightUpSaved = false;
 bool isLightDownSaved = false;
-bool isLightAuto = false;
+bool isLightAuto = true;
 
 bool alarm = false;
 
@@ -166,7 +165,7 @@ void loop() {
   tempDown = DHTDown.readTemperature();
   humDown = DHTDown.readHumidity();
 
-  if(isLightAuto){
+  if(isLightAuto && (doorUpPressed && doorDownPressed)){
     if(tempUp >= setTempUp){
       isLightUp = true;
     }
@@ -221,14 +220,14 @@ void boutons() {
     doorDownPressed = digitalRead(doorDown);
 
     if(nextPressed == 1){
-      if(menuState < 6){
-        menuState = menuState + 1;
+        if(menuState < 6){
+          menuState = menuState + 1;
+        }
+        else{
+          menuState = -3;
+        }
+        nextPressed = 0;
       }
-      else{
-        menuState = -3;
-      }
-      nextPressed = 0;
-    }
   
     if(backPressed == 1){
       if(menuState > -3){
@@ -248,19 +247,25 @@ void boutons() {
       setingsSaved = true;
     }
     
-  if(doorDownPressed == LOW){
+  if(doorDownPressed == LOW && doorUpPressed == HIGH){
     menuState = 8;
     isLightDown = true;
+    isLightUp = isLightUpSaved;
   }
-  else if(doorUpPressed == LOW){
+  else if(doorUpPressed == LOW && doorDownPressed == HIGH){
     menuState = 9;
     isLightUp = true;
+    isLightDown = isLightDownSaved;
   }
   else if(doorDownPressed == LOW && doorUpPressed == LOW){
     menuState = 7;
+    isLightUp = true;
+    isLightDown = true;
   }
   else{
     menuState = menuStateSave;
+    isLightUp = isLightUpSaved;
+    isLightDown = isLightDownSaved;
     setingsSaved = false;
   }
 }
@@ -286,7 +291,7 @@ void menu(int tempUp, int tempDown){
 
   if(menuState == -2){
     lcd.setCursor(0,0);
-    lcd.print("   LIGHT MODE   ");
+    lcd.print("  LIGHTS  MODE  ");
     if(isLightAuto){
       lcd.setCursor(0,1);
       lcd.print(">State:  AUTO  <");
@@ -304,35 +309,47 @@ void menu(int tempUp, int tempDown){
   if(menuState == -1){
     lcd.setCursor(0,0);
     lcd.print("  LIGHT BOX UP  ");
-    if(isLightUp){
-      lcd.setCursor(0,1);
-      lcd.print(">  State:  ON  <");
+    if(!isLightAuto){
+      if(isLightUp){
+        lcd.setCursor(0,1);
+        lcd.print(">  State:  ON  <");
+      }
+      else{
+        lcd.setCursor(0,1);
+        lcd.print(">  State:  OFF <");
+      }
+      if(enterPressed){
+          isLightUp = !isLightUp;
+      }
+      enterPressed = 0;
     }
     else{
       lcd.setCursor(0,1);
-      lcd.print(">  State:  OFF <");
+      lcd.print(">  State: AUTO <");
     }
-    if(enterPressed){
-        isLightUp = !isLightUp;
-    }
-    enterPressed = 0;
   }
 
   if(menuState == 0){
     lcd.setCursor(0,0);
     lcd.print(" LIGHT BOX DOWN ");
-    if(isLightDown){
-      lcd.setCursor(0,1);
-      lcd.print(">  State:  ON  <");
+    if(!isLightAuto){
+      if(isLightDown){
+        lcd.setCursor(0,1);
+        lcd.print(">  State:  ON  <");
+      }
+      else{
+        lcd.setCursor(0,1);
+        lcd.print(">  State:  OFF <");
+      }
+      if(enterPressed){
+          isLightDown = !isLightDown;
+      }
+      enterPressed = 0;
     }
     else{
       lcd.setCursor(0,1);
-      lcd.print(">  State:  OFF <");
+      lcd.print(">  State: AUTO <");
     }
-    if(enterPressed){
-        isLightDown = !isLightDown;
-    }
-    enterPressed = 0;
   }
 
   if(menuState == 1){
@@ -456,7 +473,7 @@ void menu(int tempUp, int tempDown){
     lcd.setCursor(0,0);
     lcd.print(" 3D Printer BOX ");
     lcd.setCursor(0,1);
-    lcd.print("  Version ");
+    lcd.print(" Revision ");
     lcd.print(v_logiciel);
     lcd.print("   ");
   }
