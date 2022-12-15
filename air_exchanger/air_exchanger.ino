@@ -1,9 +1,10 @@
- // PRG V4.73 correction :
- // Ajustement de l'ouverture en mode auto
- // Ajout d'un mode test système
- // Ajout de fonction [allumer tout]
- // Ajout de fonction [éteindre tout]
-
+ /* 
+    PRG V4.73 correction :
+    Ajustement de l'ouverture en mode auto
+    Ajout d'un mode test système
+    Ajout de fonction [allumer tout]
+    Ajout de fonction [éteindre tout]
+*/
 
 //-----------------------DÉCLARATIONS DES PORTS UTILISÉS ET DES #INCLUDE-----------------------\\
 
