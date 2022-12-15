@@ -1,6 +1,7 @@
 /*
     Programme de départ pour boiter CRiBoks        
     debounce des boutons software
+    Mise à jour avec LCD via I2C
 */
 
 //-----------------------DÉCLARATIONS DES PORTS UTILISÉS ET DES #INCLUDE-----------------------\\
