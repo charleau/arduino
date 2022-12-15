@@ -1,3 +1,8 @@
+/*
+    Programme de départ pour boiter CRiBoks        
+    debounce des boutons software
+*/
+
 //-----------------------DÉCLARATIONS DES PORTS UTILISÉS ET DES #INCLUDE-----------------------\\
 
 const int enter = A0;
