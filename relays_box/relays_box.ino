@@ -125,6 +125,8 @@ void loop() {
   
 }
 
+/*------------------------------ Fonction de réaction au son -----------------------------*/
+
 void soundReact(){
     soundValue = analogRead(anaSound);
     soundValue = abs(soundValue - (110 + threshold));
@@ -243,6 +245,7 @@ void irReceiver(){
                          stop == -7651
                             EQ== -26521
                             0 == 26775
+                            8 == 19125
                             9 == 21165
 */
   if(currentTime - previousIR >= IRDelay){
@@ -282,13 +285,38 @@ void irReceiver(){
           }
         break;
         
-        case -26521
+        case -26521:
           isSoundReactive = !isSoundReactive;
+        break;
+
+        case 19125:
+          adjustThreshold();
         break;
       }
     }
   }
   irrecv.resume();
+}
+
+/*------------------------------ Ajustement du threshold -----------------------------*/
+
+void adjustThreshold(){
+  lcd.clear();
+  while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561){ threshold++; }
+        if(irValue == -8161){ threshold--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("Sensibility : ");
+      lcd.print(threshold);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+    lcd.clear();
 }
 
 /*------------------------------ Gestion de l'allumage des relais -----------------------------*/
