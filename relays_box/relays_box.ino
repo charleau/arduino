@@ -43,13 +43,19 @@ int soundValue = 0;
         bool reverse = false;
 bool isSoundReactive = false;
 
-  int setYear = 2023;
- int setMonth = 6;
-   int setDay = 15;
-  int setHour = 0;
-int setMinute = 0;
+        int setYear = 2023;
+       int setMonth = 6;
+         int setDay = 15;
+        int setHour = 0;
+      int setMinute = 0;
 char daysWeek[7][3] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
-bool rtcOK = false;
+         bool rtcOK = false;
+         int onHOUR = 17;
+       int onMINUTE = 30;
+        int offHOUR = 22;
+      int offMINUTE = 30;
+        int onPRGNB = 0;
+        bool isAuto = false;
 
 float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
 float speedDelay = 50; //speed is in milliseconds
@@ -122,7 +128,7 @@ void loop() {
   relayTask();
   lcdTask();
   irReceiver();
-  
+  rtcTask();
 }
 
 /*------------------------------ Fonction de réaction au son -----------------------------*/
@@ -149,6 +155,113 @@ void timer(){
     if(currentTime - previousTime >= speedDelay){
       previousTime = currentTime;
       progTask();
+    }
+  }
+}
+
+void setAutoPower(){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("  SET AUTO ON TIME  ");
+
+/*-------------SET ON HOUR-------------*/
+  while(irValue != 765){
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == -28561 && onHOUR < 23){ onHOUR++; }
+      if(irValue == -8161 && onHOUR > 0){ onHOUR--; }
+    }
+    irrecv.resume();
+    lcd.setCursor(0, 2);
+    lcd.print("     HOUR : ");
+    lcd.print(onHOUR);
+    lcd.print("           ");
+  }
+  irrecv.resume();
+  irValue = 0;  
+
+/*-------------SET ON MINUTE-------------*/
+  while(irValue != 765){
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == -28561 && onMINUTE < 59){ onMINUTE++; }
+      if(irValue == -8161 && onMINUTE > 0){ onMINUTE--; }
+    }
+    irrecv.resume();
+    lcd.setCursor(0, 2);
+    lcd.print("   Minute : ");
+    lcd.print(onMINUTE);
+    lcd.print("        ");
+  }
+  irrecv.resume();
+  irValue = 0;
+    
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("  SET AUTO OFF TIME  ");
+
+/*-------------SET OFF HOUR-------------*/
+  while(irValue != 765){
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == -28561 && offHOUR < 23){ offHOUR++; }
+      if(irValue == -8161 && offHOUR > 0){ offHOUR--; }
+    }
+    irrecv.resume();
+    lcd.setCursor(0, 2);
+    lcd.print("     HOUR : ");
+    lcd.print(offHOUR);
+    lcd.print("           ");
+  }
+  irrecv.resume();
+  irValue = 0;  
+
+/*-------------SET OFF MINUTE-------------*/
+  while(irValue != 765){
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == -28561 && offMINUTE < 59){ offMINUTE++; }
+      if(irValue == -8161 && offMINUTE > 0){ offMINUTE--; }
+    }
+    irrecv.resume();
+    lcd.setCursor(0, 2);
+    lcd.print("   Minute : ");
+    lcd.print(offMINUTE);
+    lcd.print("        ");
+  }
+  irrecv.resume();
+  irValue = 0;
+  lcd.clear();
+
+  /*-------------SET ON PROGRAM NUMBER-------------*/
+  while(irValue != 765){
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == -28561 && onPRGNB < 10){ onPRGNB++; }
+      if(irValue == -8161 && onPRGNB > 1){ onPRGNB--; }
+    }
+    irrecv.resume();
+    lcd.setCursor(0, 2);
+    lcd.print("   prog. nb : ");
+    lcd.print(onPRGNB);
+    lcd.print("        ");
+  }
+  irrecv.resume();
+  irValue = 0;
+  lcd.clear();
+}
+
+/*------------------------------------- DS1307 RTC ------------------------------------*/
+
+void rtcTask(){
+  if(isAuto){  
+    DateTime now = rtc.now();
+    if(now.hour() == onHOUR && now.minute() == onMINUTE){
+      prgNb = onPRGNB;
+    }
+
+    if(now.hour() == offHOUR && now.minute() == offMINUTE){
+      prgNb = 0;
     }
   }
 }
@@ -291,6 +404,14 @@ void irReceiver(){
 
         case 19125:
           adjustThreshold();
+        break;
+
+        case 17085:
+          setAutoPower();
+        break;
+
+        case -20401:
+          isAuto = !isAuto;         
         break;
       }
     }
@@ -443,12 +564,6 @@ void relayTask(){
   }
 }
 
-/*------------------------------------- DS1307 RTC ------------------------------------*/
-
-void rtcTask(){
-  
-}
-
 /*--------------------------------- Affichage du LCD ----------------------------------*/
 void lcdTask(){
 
@@ -467,7 +582,12 @@ void lcdTask(){
   lcd.setCursor(0,1);
   lcd.print("Prog : #");
   lcd.print(prgNb);
-  lcd.print("            ");
+  if(isAuto){
+    lcd.print(" auto>");
+  }
+  else{
+    lcd.print("            ");    
+  }
   lcd.setCursor(15,1);
   if(now.hour() < 10){ lcd.print("0"); }
   lcd.print(now.hour());
@@ -560,6 +680,8 @@ void lcdTask(){
   }
   
 }
+
+/*------------------------------ Réglage RTC au départ -----------------------------*/
 
 void rtcSetting(){
 
