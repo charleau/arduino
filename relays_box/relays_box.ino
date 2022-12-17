@@ -14,6 +14,8 @@ const int relay6 = 7;
 const int relay7 = 8;
 const int relay8 = 9;
 const int     IR = 10;
+const int anaSound = A0;
+const int digSound = 11;
 
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 20, 4);
@@ -26,21 +28,25 @@ decode_results results;;
 RTC_DS1307 rtc;
 
 /*------------------ Déclaration des variables utilisées ------------------*/
-          int r1 = 0;
-          int r2 = 0;
-          int r3 = 0;
-          int r4 = 0;
-          int r5 = 0;
-          int r6 = 0;
-          int r7 = 0;
-          int r8 = 0;
-          
-    bool reverse = false;
+        int r1 = 0;
+        int r2 = 0;
+        int r3 = 0;
+        int r4 = 0;
+        int r5 = 0;
+        int r6 = 0;
+        int r7 = 0;
+        int r8 = 0;
 
-int setYear = 2023;
-int setMonth = 6;
-int setDay = 15;
-int setHour = 0;
+ int threshold = 7;
+int soundValue = 0;
+                    
+        bool reverse = false;
+bool isSoundReactive = false;
+
+  int setYear = 2023;
+ int setMonth = 6;
+   int setDay = 15;
+  int setHour = 0;
 int setMinute = 0;
 char daysWeek[7][3] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
 bool rtcOK = false;
@@ -51,10 +57,12 @@ int        prgNb = 0;
 byte relaysPower = 1;
 
 /*----- Variables timer -----*/
-unsigned long  currentTime = 0;
-unsigned long previousTime = 0;
-unsigned long   previousIR = 0;
-               int IRDelay = 50;
+unsigned long   currentTime = 0;
+unsigned long  previousTime = 0;
+unsigned long    previousIR = 0;
+unsigned long previousSound = 0;
+             int soundDelay = 15;
+                int IRDelay = 50;
 
 int irValue;
 
@@ -65,7 +73,7 @@ byte fullCase[8]={B11111, B11111, B11111, B11111,
 
 /*--------------------------- Setup du Arduino ---------------------------*/
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(relay1, OUTPUT);
   pinMode(relay2, OUTPUT);
@@ -76,6 +84,7 @@ void setup() {
   pinMode(relay7, OUTPUT);
   pinMode(relay8, OUTPUT);
   pinMode(IR    ,  INPUT);
+  pinMode(anaSound, INPUT);
   
   digitalWrite(relay1, HIGH);
   digitalWrite(relay2, HIGH);
@@ -101,224 +110,45 @@ void setup() {
     lcd.print("     RTC error!     ");
     while (1);
   }
-  rtcSetting();
+  //rtcSetting();
 }
 
 /*------------------------------------- Programme principal ----------------------------------*/
 void loop() {
   speedLCD = speedDelay / 1000;
   
+  soundReact();
   timer();
   relayTask();
   lcdTask();
   irReceiver();
+  
 }
 
-void rtcSetting(){
-
-  /*
-            enter == 765
-                0 == 26775
-                9 == 21165
-      flèche haut == -28561
-       flèche bas == -8161
-  */
-  
-  DateTime now = rtc.now();
-  
-  lcd.setCursor(0, 0);
-  lcd.print("RTC setting correct?");
-  lcd.setCursor(0, 1);
-  lcd.print(daysWeek[now.dayOfTheWeek()]);
-  lcd.setCursor(3, 1);
-  lcd.print(" ");
-  lcd.print(now.day());
-  lcd.print("-");
-  lcd.print(now.month());
-  lcd.print("-");
-  lcd.print(now.year());
-  lcd.print(" ");
-  if(now.hour() < 10){ lcd.print("0"); }
-  lcd.print(now.hour());
-  lcd.print(":");
-  if(now.minute() < 10){ lcd.print("0"); }
-  lcd.print(now.minute());
-  lcd.setCursor(0, 3);
-  lcd.print("0 for OK  | 9 if not");
-
-  while(irValue != 26775 && irValue != 21165){
-    delay(10);
-    if (irrecv.decode(&results)){
-      irValue = results.value;
-      if(irValue == 26775){rtcOK = true;}
+void soundReact(){
+    soundValue = analogRead(anaSound);
+    soundValue = abs(soundValue - (110 + threshold));
+/*
+    Serial.print("X:");
+    Serial.println(soundValue);
+*/
+  if(isSoundReactive){
+    if(soundValue > 6){
+      progTask();
     }
-    irrecv.resume();
   }
-
-  if(!rtcOK){
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-    lcd.print("      SET DATE      ");
-/*-------------SET THE DAY-------------*/
-    while(irValue != 765){
-      if (irrecv.decode(&results)){
-        irValue = results.value;
-        if(irValue == -28561 && setDay < 31){ setDay++; }
-        if(irValue == -8161 && setDay > 1){ setDay--; }
-      }
-      irrecv.resume();
-      lcd.setCursor(0, 2);
-      lcd.print("      Day : ");
-      lcd.print(setDay);
-      lcd.print("        ");
-    }
-    irrecv.resume();
-    irValue = 0;
-
-/*-------------SET THE MONTH-------------*/
-    while(irValue != 765){
-      if (irrecv.decode(&results)){
-        irValue = results.value;
-        if(irValue == -28561 && setMonth < 12){ setMonth++; }
-        if(irValue == -8161 && setMonth > 1){ setMonth--; }
-      }
-      irrecv.resume();
-      lcd.setCursor(0, 2);
-      lcd.print("    Month : ");
-      lcd.print(setMonth);
-      lcd.print("        ");
-    }
-    irrecv.resume();
-    irValue = 0;
-
-/*-------------SET THE YEAR-------------*/
-    while(irValue != 765){
-      if (irrecv.decode(&results)){
-        irValue = results.value;
-        if(irValue == -28561){ setYear++; }
-        if(irValue == -8161 && setYear > 2022){ setYear--; }
-      }
-      irrecv.resume();
-      lcd.setCursor(0, 2);
-      lcd.print("     Year : ");
-      lcd.print(setYear);
-      lcd.print("        ");
-    }
-    irrecv.resume();
-    irValue = 0;
-
-    lcd.setCursor(0, 0);
-    lcd.print("      SET TIME      ");
-
-/*-------------SET THE HOUR-------------*/
-    while(irValue != 765){
-      if (irrecv.decode(&results)){
-        irValue = results.value;
-        if(irValue == -28561 && setHour < 23){ setHour++; }
-        if(irValue == -8161 && setHour > 0){ setHour--; }
-      }
-      irrecv.resume();
-      lcd.setCursor(0, 2);
-      lcd.print("     Hour : ");
-      lcd.print(setHour);
-      lcd.print("        ");
-    }
-    irrecv.resume();
-    irValue = 0;
-
-/*-------------SET THE MINUTE-------------*/
-    while(irValue != 765){
-      if (irrecv.decode(&results)){
-        irValue = results.value;
-        if(irValue == -28561 && setMinute < 59){ setMinute++; }
-        if(irValue == -8161 && setMinute > 0){ setMinute--; }
-      }
-      irrecv.resume();
-      lcd.setCursor(0, 2);
-      lcd.print("   Minute : ");
-      lcd.print(setMinute);
-      lcd.print("        ");
-    }
-    irrecv.resume();
-    irValue = 0;
-
-    rtc.adjust(DateTime(setYear, setMonth, setDay, setHour, setMinute, 0));
-    lcd.clear();
-    lcd.setCursor(0, 2);
-    lcd.print("   Settings  have   ");
-    lcd.print("    been  saved!    ");
-    delay(3000);
-    lcd.clear();
-    
-  }
-  
 }
 
 /*-------------------------------------- Fonction Timer --------------------------------------*/
 void timer(){
   currentTime = millis();
 
-  if(currentTime - previousTime >= speedDelay){
-    previousTime = currentTime;
-    progTask();
-  }
-}
-
-/*--------------------------- Fonction de gestion de la manette IR ---------------------------*/
-void irReceiver(){
-/*
-                flèche droite == -15811
-                flèche gauche == 8925
-                  flèche haut == -28561
-                   flèche bas == -8161
-                        power == -23971
-                         stop == -7651
-                            EQ== -26521
-                            0 == 26775
-                            9 == 21165
-*/
-  if(currentTime - previousIR >= IRDelay){
-    previousIR = currentTime;
-    if (irrecv.decode(&results)){
-      irValue = results.value;
-      Serial.println(irValue);
-
-      switch(irValue){
-        case -23971:
-            prgNb = 1;
-        break;
-        
-        case -7651:
-            prgNb = 0;
-        break;
-        
-        case -15811:
-          if(prgNb < 5 && prgNb >= 1){
-            prgNb++;
-          }
-        break;
-        
-        case 8925:
-          if(prgNb > 2 && prgNb <= 5){
-            prgNb--;
-          }
-        break;
-
-        case -28561:
-          speedDelay = speedDelay + 50;
-        break;
-
-        case -8161:
-          if(speedDelay > 50){
-            speedDelay = speedDelay - 50;
-          }
-          
-        break;
-      }
+  if(!isSoundReactive){
+    if(currentTime - previousTime >= speedDelay){
+      previousTime = currentTime;
+      progTask();
     }
   }
-  irrecv.resume();
 }
 
 /*------------------------------ Gestion des différents programmes -----------------------------*/
@@ -400,6 +230,65 @@ void progTask(){
       }
     break;
   }
+}
+
+/*--------------------------- Fonction de gestion de la manette IR ---------------------------*/
+void irReceiver(){
+/*
+                flèche droite == -15811
+                flèche gauche == 8925
+                  flèche haut == -28561
+                   flèche bas == -8161
+                        power == -23971
+                         stop == -7651
+                            EQ== -26521
+                            0 == 26775
+                            9 == 21165
+*/
+  if(currentTime - previousIR >= IRDelay){
+    previousIR = currentTime;
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      Serial.println(irValue);
+
+      switch(irValue){
+        case -23971:
+            prgNb = 1;
+        break;
+        
+        case -7651:
+            prgNb = 0;
+        break;
+        
+        case -15811:
+          if(prgNb < 5 && prgNb >= 1){
+            prgNb++;
+          }
+        break;
+        
+        case 8925:
+          if(prgNb > 2 && prgNb <= 5){
+            prgNb--;
+          }
+        break;
+
+        case -28561:
+          speedDelay = speedDelay + 50;
+        break;
+
+        case -8161:
+          if(speedDelay > 50){
+            speedDelay = speedDelay - 50;
+          }
+        break;
+        
+        case -26521
+          isSoundReactive = !isSoundReactive;
+        break;
+      }
+    }
+  }
+  irrecv.resume();
 }
 
 /*------------------------------ Gestion de l'allumage des relais -----------------------------*/
@@ -539,8 +428,13 @@ void lcdTask(){
   
   lcd.setCursor(0,0);
   lcd.print("delais : ");
-  lcd.print(speedLCD);
-  lcd.print("s       ");
+  if(!isSoundReactive){
+    lcd.print(speedLCD);
+    lcd.print("s         ");
+  }
+  else{
+    lcd.print("Sound react");    
+  }
   
   lcd.setCursor(0,1);
   lcd.print("Prog : #");
@@ -635,6 +529,147 @@ void lcdTask(){
   else{
     lcd.setCursor((4+relay8),3);
     lcd.print(" ");
+  }
+  
+}
+
+void rtcSetting(){
+
+  /*
+            enter == 765
+                0 == 26775
+                9 == 21165
+      flèche haut == -28561
+       flèche bas == -8161
+  */
+  
+  DateTime now = rtc.now();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("RTC setting correct?");
+  lcd.setCursor(0, 1);
+  lcd.print(daysWeek[now.dayOfTheWeek()]);
+  lcd.setCursor(3, 1);
+  lcd.print(" ");
+  lcd.print(now.day());
+  lcd.print("-");
+  lcd.print(now.month());
+  lcd.print("-");
+  lcd.print(now.year());
+  lcd.print(" ");
+  if(now.hour() < 10){ lcd.print("0"); }
+  lcd.print(now.hour());
+  lcd.print(":");
+  if(now.minute() < 10){ lcd.print("0"); }
+  lcd.print(now.minute());
+  lcd.setCursor(0, 3);
+  lcd.print("0 for OK  | 9 if not");
+
+  while(irValue != 26775 && irValue != 21165){
+    delay(10);
+    if (irrecv.decode(&results)){
+      irValue = results.value;
+      if(irValue == 26775){rtcOK = true;}
+    }
+    irrecv.resume();
+  }
+
+  if(!rtcOK){
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("      SET DATE      ");
+/*-------------SET THE DAY-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setDay < 31){ setDay++; }
+        if(irValue == -8161 && setDay > 1){ setDay--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("      Day : ");
+      lcd.print(setDay);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE MONTH-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setMonth < 12){ setMonth++; }
+        if(irValue == -8161 && setMonth > 1){ setMonth--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("    Month : ");
+      lcd.print(setMonth);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE YEAR-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561){ setYear++; }
+        if(irValue == -8161 && setYear > 2022){ setYear--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("     Year : ");
+      lcd.print(setYear);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+    lcd.setCursor(0, 0);
+    lcd.print("      SET TIME      ");
+
+/*-------------SET THE HOUR-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setHour < 23){ setHour++; }
+        if(irValue == -8161 && setHour > 0){ setHour--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("     Hour : ");
+      lcd.print(setHour);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+/*-------------SET THE MINUTE-------------*/
+    while(irValue != 765){
+      if (irrecv.decode(&results)){
+        irValue = results.value;
+        if(irValue == -28561 && setMinute < 59){ setMinute++; }
+        if(irValue == -8161 && setMinute > 0){ setMinute--; }
+      }
+      irrecv.resume();
+      lcd.setCursor(0, 2);
+      lcd.print("   Minute : ");
+      lcd.print(setMinute);
+      lcd.print("        ");
+    }
+    irrecv.resume();
+    irValue = 0;
+
+    rtc.adjust(DateTime(setYear, setMonth, setDay, setHour, setMinute, 0));
+    lcd.clear();
+    lcd.setCursor(0, 2);
+    lcd.print("   Settings  have   ");
+    lcd.print("    been  saved!    ");
+    delay(3000);
+    lcd.clear();
+    
   }
   
 }
