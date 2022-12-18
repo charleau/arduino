@@ -58,8 +58,10 @@ char daysWeek[7][3] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
         bool isAuto = false;
 
 float   speedLCD = 0;  //only to print speedDelay/1000 on LCD
-float speedDelay = 50; //speed is in milliseconds
+float speedDelay = 150; //speed is in milliseconds
 int        prgNb = 0;
+int   prgNbActif = 0;
+int   nbFoisPrg9 = 16;
 byte relaysPower = 1;
 
 /*----- Variables timer -----*/
@@ -109,6 +111,24 @@ void setup() {
   irrecv.enableIRIn();
   decode_results results;
 
+  lcd.setCursor(0,0);
+  lcd.print("      CRiBoks       ");
+  lcd.setCursor(0,1);
+  lcd.print("  Lights system V2  ");
+  delay(2000);
+  lcd.setCursor(0,2);
+  lcd.print("   Developped  by   ");
+  lcd.setCursor(0,3);
+  lcd.print("   Charles Ricard   ");
+  delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("                    ");
+  lcd.setCursor(0,1);
+  lcd.print("                    ");
+  delay(2000);
+  lcd.clear();
+  delay(1000);
+
   if(!rtc.begin()){
     lcd.clear();
     
@@ -116,7 +136,7 @@ void setup() {
     lcd.print("     RTC error!     ");
     while (1);
   }
-  //rtcSetting();
+  rtcSetting();
 }
 
 /*------------------------------------- Programme principal ----------------------------------*/
@@ -269,16 +289,50 @@ void rtcTask(){
 /*------------------------------ Gestion des différents programmes -----------------------------*/
 void progTask(){
   
-  switch(prgNb){
+  if(prgNb == 9){
+    if(nbFoisPrg9 >= 16){      
+      if(reverse){
+        if(prgNbActif >= 7){
+        reverse =!reverse;
+        }
+        else{
+          prgNbActif++;
+        } 
+      }
+      else{
+        if(prgNbActif <= 2){
+        reverse =!reverse;      
+        }
+        else{
+          prgNbActif--;
+        } 
+      }
+      nbFoisPrg9 = 0;
+    }
+  }
+  else{
+    prgNbActif = prgNb;
+  }
+
+
+  switch(prgNbActif){
     
     case 0:
-      lcd.setCursor(6,2);
+      lcd.setCursor(5,2);
       lcd.print("All off         ");
       relaysPower = 0;
+      digitalWrite(relay1, HIGH);
+      digitalWrite(relay2, HIGH);
+      digitalWrite(relay3, HIGH);
+      digitalWrite(relay4, HIGH);
+      digitalWrite(relay5, HIGH);
+      digitalWrite(relay6, HIGH);
+      digitalWrite(relay7, HIGH);
+      digitalWrite(relay8, HIGH);
     break;
 
     case 1:
-      lcd.setCursor(6,2);
+      lcd.setCursor(5,2);
       lcd.print("All on         ");
       relaysPower = -1;
       for(int i = 2; i < 10; i++){
@@ -287,7 +341,7 @@ void progTask(){
     break;
     
     case 2:
-      lcd.setCursor(6,2);
+      lcd.setCursor(5,2);
       lcd.print("balayage 1->8  ");
       
       if(relaysPower >= 8){
@@ -295,12 +349,13 @@ void progTask(){
       }
       else{
         relaysPower++;
-      }      
+      }    
+      nbFoisPrg9++;
     break;
 
     
     case 3:
-      lcd.setCursor(6,2);
+      lcd.setCursor(5,2);
       lcd.print("balayage 1<-8    ");
       
       if(relaysPower <= 1){
@@ -308,24 +363,12 @@ void progTask(){
       }
       else{
         relaysPower--;
-      }      
-    break;
-
-    
-    case 4:
-      lcd.setCursor(6,2);
-      lcd.print("clign 1-4<->5-8     ");
-    
-      if(relaysPower == 11){
-        relaysPower = 10;
       }
-      else{
-        relaysPower = 11;
-       } 
+      nbFoisPrg9++;
     break;
 
-    case 5:
-      lcd.setCursor(6,2);
+    case 4:
+      lcd.setCursor(5,2);
       lcd.print("balayage 1<->8     ");
       if(reverse){
         if(relaysPower >= 8){
@@ -343,8 +386,78 @@ void progTask(){
           relaysPower--;
         } 
       }
+      nbFoisPrg9++;
     break;
-  }
+
+    case 5:
+      lcd.setCursor(5,2);
+      lcd.print("clign 1-4<->5-8     ");
+    
+      if(relaysPower == 11){
+        relaysPower = 10;
+      }
+      else{
+        relaysPower = 11;
+      }
+      nbFoisPrg9++;
+    break;
+
+    case 6:
+      lcd.setCursor(5,2);
+      lcd.print("clign pair<->impair     ");
+    
+      if(relaysPower == 12){
+        relaysPower = 13;
+      }
+      else{
+        relaysPower = 12;
+      }
+      nbFoisPrg9++;
+    break;
+
+    case 7:
+      lcd.setCursor(5,2);
+      lcd.print("balayage 1<->8     ");
+      if(reverse){
+        if(relaysPower >= 21){
+        reverse =!reverse;
+        }
+        else{
+          relaysPower++;
+        } 
+      }
+      else{
+        if(relaysPower <= 14){
+        reverse =!reverse;      
+        }
+        else{
+          relaysPower--;
+        } 
+      }
+      nbFoisPrg9++;
+    break;
+
+    case 8:
+      lcd.setCursor(5,2);
+      lcd.print("ALL programs     ");
+      if(reverse){
+        if(relaysPower >= 21){
+        reverse =!reverse;
+        }
+        else{
+          relaysPower++;
+        } 
+      }
+      else{
+        if(relaysPower <= 1){
+        reverse =!reverse;      
+        }
+        else{
+          relaysPower--;
+        } 
+      }
+    break;
+  }  
 }
 
 /*--------------------------- Fonction de gestion de la manette IR ---------------------------*/
@@ -377,13 +490,13 @@ void irReceiver(){
         break;
         
         case -15811:
-          if(prgNb < 5 && prgNb >= 1){
+          if(prgNb >= 1){
             prgNb++;
           }
         break;
         
         case 8925:
-          if(prgNb > 2 && prgNb <= 5){
+          if(prgNb > 1){
             prgNb--;
           }
         break;
@@ -393,7 +506,7 @@ void irReceiver(){
         break;
 
         case -8161:
-          if(speedDelay > 50){
+          if(speedDelay > 150){
             speedDelay = speedDelay - 50;
           }
         break;
@@ -561,6 +674,110 @@ void relayTask(){
       digitalWrite(relay7, HIGH);
       digitalWrite(relay8, HIGH);      
     break;  
+
+    
+    case 12:
+      digitalWrite(relay1, HIGH);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, HIGH);
+      digitalWrite(relay4, LOW);
+      digitalWrite(relay5, HIGH);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, HIGH);
+      digitalWrite(relay8, LOW);      
+    break;
+    case 13 :
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, HIGH);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, HIGH);
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, HIGH);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, HIGH);      
+    break; 
+
+
+    case 14:
+      digitalWrite(relay1, HIGH);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 15:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, HIGH);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 16:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, HIGH);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 17:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, HIGH);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 18:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, HIGH);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 19:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, HIGH);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, LOW);
+    break;
+    case 20:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, HIGH);
+      digitalWrite(relay8, LOW);
+    break;
+    case 21:
+      digitalWrite(relay1, LOW);
+      digitalWrite(relay2, LOW);
+      digitalWrite(relay3, LOW);
+      digitalWrite(relay4, LOW);    
+      digitalWrite(relay5, LOW);
+      digitalWrite(relay6, LOW);
+      digitalWrite(relay7, LOW);
+      digitalWrite(relay8, HIGH);
+    break;
   }
 }
 
@@ -586,9 +803,9 @@ void lcdTask(){
     lcd.print(" auto>");
   }
   else{
-    lcd.print("            ");    
+    lcd.print("      ");    
   }
-  lcd.setCursor(15,1);
+  //lcd.setCursor(15,1);
   if(now.hour() < 10){ lcd.print("0"); }
   lcd.print(now.hour());
   lcd.print(":");
